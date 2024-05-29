@@ -7,24 +7,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     # need the repo checked out
-    - name: checkout repo
+    - name: Checkout repo
       uses: actions/checkout@v3
       with:
         submodules: recursive
 
-    # install oss fpga tools
-    - name: install oss-cad-suite
-      uses: YosysHQ/setup-oss-cad-suite@v2
-      with:
-          python-override: true
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-    - run: | 
-        yosys --version
-        iverilog -V
-        cocotb-config --libpython
-        cocotb-config --python-bin
-
-    - name: checkout tt tools repo
+    - name: Checkout tt tools repo
       uses: actions/checkout@v3
       with:
         repository: tinytapeout/tt-support-tools
@@ -32,33 +20,42 @@ jobs:
         ref: tt07
 
     # need python and requirements
-    - name: setup python
+    - name: Setup Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-    - run: pip install -r tt/requirements.txt
+    - run: |
+        python --version
+        python -m pip install test/requirements.txt
+        python -m pip install -r tt/requirements.txt
+
+    - name: Install iverlog
+      run: |
+        sudo apt-get install -y iverilog
 
     # fetch the truth table
-    - name: fetch Verilog and build config
+    - name: Fetch Verilog and Build Config
       run: ./tt/tt_tool.py --create-user-config
 
     # does the wokwi project have a truthtable?
-    - name: Check the truthtable exists
+    - name: Check the Truthtable Exists
       id: check_files
       uses: andstor/file-existence-action@v2
       with:
         files: "src/truthtable.md"
 
-    - name: test
+    - name: Test
       if: steps.check_files.outputs.files_exists == 'true'
       run: |
         cd src
+        unset PYTHONHOME
+        echo "PYTHONPATH: $PYTHONPATH"
         make clean
         make
         # make will return success even if the test fails, so check for failure in the results.xml
         ! grep failure results.xml
 
-    - name: upload vcd
+    - name: Upload VCD
       if: success() || failure()
       uses: actions/upload-artifact@v3
       with:
