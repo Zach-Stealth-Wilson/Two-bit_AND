@@ -26,7 +26,7 @@ jobs:
         python-version: '3.10'
     - run: |
         python --version
-        python -m pip install test/requirements.txt
+        python -m pip install -r test/requirements.txt
         python -m pip install -r tt/requirements.txt
 
     - name: Install iverlog
